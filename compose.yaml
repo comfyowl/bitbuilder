@@ -1,6 +1,8 @@
+version: '3.8'
+
 services:
   app:
-    build: .
+    image: bitbuilder:latest
     ports:
       - "8080:8080"
     depends_on:
@@ -8,7 +10,7 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://root:secret@mongodb:27017/mydatabase?authSource=admin
-    restart: on-failure
+    restart: unless-stopped
 
   mongodb:
     image: 'mongo:latest'
@@ -19,7 +21,7 @@ services:
     ports:
       - '27017'
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
