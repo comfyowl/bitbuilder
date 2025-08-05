@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up JDK 17 (Amazon Corretto)
         uses: actions/setup-java@v3
         with:
@@ -31,30 +32,22 @@ jobs:
       - name: Build application
         run: mvn clean package -DskipTests
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: 22
-          script: |
-            sudo pkill -f 'java -jar' || true
-            mkdir -p /home/ec2-user/app
-            rm -f /home/ec2-user/app/*.jar
+      - name: Build and push Docker image
+        run: |
+          docker build -t bitbuilder:latest .
+          docker save bitbuilder:latest | gzip > bitbuilder.tar.gz
 
-      - name: Copy jar to EC2
+      - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
-          source: "target/*.jar"
+          source: "bitbuilder.tar.gz,docker-compose.yml"
           target: "/home/ec2-user/app/"
-          strip_components: 1
 
-      - name: Start application
+      - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -63,4 +56,18 @@ jobs:
           port: 22
           script: |
             cd /home/ec2-user/app
-            nohup java -jar *.jar > app.log 2>&1 &
+            
+            # Stop existing containers
+            docker-compose down || true
+            
+            # Load new Docker image
+            docker load < bitbuilder.tar.gz
+            
+            # Clean up old images
+            docker image prune -f
+            
+            # Start services with Docker Compose
+            docker-compose up -d
+            
+            # Clean up tar file
+            rm -f bitbuilder.tar.gz
