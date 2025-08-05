@@ -32,6 +32,9 @@ jobs:
       - name: Build application
         run: mvn clean package -DskipTests
 
+      - name: Verify JAR exists
+        run: ls -la target/
+
       - name: Build and push Docker image
         run: |
           docker build -t bitbuilder:latest .
@@ -44,7 +47,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
-          source: "bitbuilder.tar.gz,docker-compose.yml"
+          source: "bitbuilder.tar.gz,compose.yaml"
           target: "/home/ec2-user/app/"
 
       - name: Deploy with Docker Compose
@@ -58,7 +61,7 @@ jobs:
             cd /home/ec2-user/app
             
             # Stop existing containers
-            docker-compose down || true
+            docker compose down || true
             
             # Load new Docker image
             docker load < bitbuilder.tar.gz
@@ -67,7 +70,7 @@ jobs:
             docker image prune -f
             
             # Start services with Docker Compose
-            docker-compose up -d
+            docker compose up -d
             
             # Clean up tar file
             rm -f bitbuilder.tar.gz
