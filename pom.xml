@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.service</groupId>
-	<artifactId>master</artifactId>
+	<artifactId>bitbuilder</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>master</name>
+	<name>bitbuilder</name>
 	<description>Base Service</description>
 	<url/>
 	<licenses>
